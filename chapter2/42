@@ -1,0 +1,71 @@
+;; Some basic functions (already implemented)
+
+(define (map proc items)
+  (if (null? items)
+      nil
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+(define (length seq)
+  (accumulate (lambda (x y) (+ 1 y)) 0 seq))
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low (enumerate-interval (+ low 1) high))))
+(define (filter predicate sequence)
+  (cond ((null? sequence) nil)
+        ((predicate (car sequence))
+         (cons (car sequence)
+               (filter predicate (cdr sequence))))
+        (else (filter predicate (cdr sequence)))))
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+  
+
+;; The question itself
+
+(define (queens board-size)
+  (define (queen-cols k)  
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions) (safe? k positions))
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position new-row k rest-of-queens))
+                 (enumerate-interval 1 board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
+  
+; let coordinates be built from origin at lower right
+; a solution is a list of (x y) coords, counting '1' as first row
+
+(define empty-board nil)
+(define (adjoin-position new-row k rest)
+  (append (list (list k new-row)) rest))
+
+(define (safe? k positions)
+  ; perform a check for each element in positions
+  ; for each position (x height) check that:
+  	; height!= (height of k'th queen):= h
+ 	; height!= h +- (k-x)
+  (accumulate (lambda (x y) (and x y))
+              true
+              (map (lambda pair
+                     (let ((height (car (cdr (car pair))))
+                           (xpos (car (car pair)))
+                           (h (car (cdr (car positions)))))
+                       (and (not (= height h))
+                            (not (= height (+ h (- k xpos))))
+                            (not (= height (- h (- k xpos)))))))
+                   (cdr positions))))
+                 
+;; Some testing
+(safe? 3 (list (list 3 2) (list 2 4) (list 1 4)))
+(safe? 3 (list (list 3 2) (list 2 2) (list 1 4)))
+(length (queens 8)) ;; returns 92 after a while :)
